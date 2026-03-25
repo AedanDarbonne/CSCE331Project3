@@ -1,11 +1,11 @@
 const express = require('express');
 const app = express();
-const port = port = process.env.PORT || 4000
+const port = 3000;
 
 app.set("view engine", "ejs");
 
 app.get('/', (req, res) => {
-    const data = {name: 'Team 83'};
+    const data = {name: 'Mario'};
     res.render('index', data);
 });
 
