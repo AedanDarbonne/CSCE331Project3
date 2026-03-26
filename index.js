@@ -23,14 +23,7 @@ process.on('SIGINT', function() {
     process.exit(0);
 });
 	 	 	 	
-app.set("view engine", "ejs");
-
-app.get('/', (req, res) => {
-    const data = {name: 'Mario'};
-    res.render('index', data);
-});
-
-app.get('/user', (req, res) => {
+app.get('/index', (req, res) => {
     teammembers = []
     pool
         .query('SELECT * FROM teammembers;')
@@ -40,7 +33,7 @@ app.get('/user', (req, res) => {
             }
             const data = {teammembers: teammembers};
             console.log(teammembers);
-            res.render('user', data);
+            res.render('index', data);
         });
 });
 
