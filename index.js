@@ -1,4 +1,5 @@
 const express = require('express');
+app.set('view engine', 'ejs');
 const { Pool } = require('pg');
 const dotenv = require('dotenv').config();
 
