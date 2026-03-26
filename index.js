@@ -23,7 +23,7 @@ process.on('SIGINT', function() {
     process.exit(0);
 });
 	 	 	 	
-app.get('/index', (req, res) => {
+app.get('/', (req, res) => {
     teammembers = []
     pool
         .query('SELECT * FROM teammembers;')
