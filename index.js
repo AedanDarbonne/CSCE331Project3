@@ -8,6 +8,7 @@ const port = 3000;
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use('/cashier', express.static('views/Cashier'));
 // Create pool
 const pool = new Pool({
     user: process.env.PSQL_USER,
@@ -36,7 +37,7 @@ app.get('/', (req, res) => {
             }
             const data = {teammembers: teammembers};
             console.log(teammembers);
-            res.render('portal', data);
+            res.render('Portal/portal', data);
         });
 });
 
@@ -51,7 +52,7 @@ app.get('/inventory', (req, res) => {
             }
             const data = {inventory: inventory};
             console.log(inventory);
-            res.render('inventory', data);
+            res.render('Manager/inventory', data);
         });
 });
 
@@ -87,6 +88,20 @@ app.post('/delete-ingredient', (req, res) => {
         });
 });
 
+//update ingredient quantity
+app.post('/update-ingredient', (req, res) => {
+    const {ingredient_id, quantity} = req.body;
+    const query = "UPDATE inventory SET quantity = $2 WHERE ingredient_id = $1";
+    pool.query(query, [ingredient_id, quantity])
+        .then(() => {
+            res.redirect('/inventory');
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send("Error updating quantity");
+        });
+});
+
 //Initializes employee view table
 app.get('/employee', (req, res) => {
     employees = []
@@ -98,7 +113,7 @@ app.get('/employee', (req, res) => {
             }
             const data = {employees: employees};
             console.log(employees);
-            res.render('employee', data);
+            res.render('Manager/employee', data);
         });
 });
 
@@ -134,6 +149,126 @@ app.post('/delete-employee', (req, res) => {
         });
 });
 
+//Initializes menu view table
+app.get('/menu', (req, res) => {
+    pool.query('SELECT * FROM menu ORDER BY item_id ASC;')
+        .then(result => {
+            res.render('Manager/menu', { menu: result.rows });
+        })
+        .catch(err => {
+            console.error("Error loading menu:", err);
+            res.status(500).send("Error loading menu");
+        });
+});
+
+//Handles adding a menu item to menu
+app.post('/add-menu-item', (req, res) => {
+    const { item_name, cost, ingredients } = req.body;
+
+    const query = `
+        INSERT INTO menu (item_name, cost, ingredients)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (item_name) DO UPDATE
+        SET cost = EXCLUDED.cost,
+            ingredients = EXCLUDED.ingredients
+    `;
+
+    pool.query(query, [item_name, cost, ingredients])
+        .then(() => res.redirect('/menu'))
+        .catch(err => {
+            console.error("Error saving menu item:", err);
+            res.status(500).send("Error saving menu item");
+        });
+});
+
+//Delete a menu item
+app.post('/delete-menu-item', (req, res) => {
+    const { item_id } = req.body;
+
+    const query = "DELETE FROM menu WHERE item_id = $1";
+
+    pool.query(query, [item_id])
+        .then(() => res.redirect('/menu'))
+        .catch(err => {
+            console.error("Error deleting menu item:", err);
+            res.status(500).send("Error deleting menu item");
+        });
+});
+
+
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
+});
+
+
+/** CASHIER VIEW */
+let activeOrders = []
+let orderCounter = 1; // Simple counter to assign order IDs
+
+app.get('/order-screen', (req, res) => {
+    // Make sure this table name matches 'menu' from your screenshot
+    pool.query('SELECT * FROM menu ORDER BY item_id ASC;') 
+        .then(query_res => {
+            res.render('Cashier/order-screen', { items: query_res.rows });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).send("Error fetching menu items");
+        });
+});
+
+app.get('/active-orders', (req, res) => {
+    // Pass the activeOrders array to the EJS template
+    res.render('Cashier/active-orders', { orders: activeOrders });
+});
+
+app.get('/cart', (req, res) => {
+    // We don't need to pass database items here yet, 
+    // because the cart lives in the browser's LocalStorage!
+    res.render('Cashier/cart'); 
+});
+
+app.post('/api/checkout', (req, res) => {
+    const { items } = req.body;
+
+    if (!items || items.length === 0) {
+        return res.status(400).send("No items in cart");
+    }
+
+    // Create a new order object for the active list
+    const newOrder = {
+        id: orderCounter++,
+        items: items, // This is the array of {name, price}
+        timestamp: new Date().toLocaleString()
+    };
+
+    activeOrders.push(newOrder);
+    console.log(`Order #${newOrder.id} added to active orders.`);
+    
+    res.status(200).json({ success: true });
+});
+
+app.post('/api/complete-order/:id', async (req, res) => {
+    const orderId = parseInt(req.params.id);
+    const orderIndex = activeOrders.findIndex(o => o.id === orderId);
+
+    if (orderIndex > -1) {
+        const orderToSave = activeOrders[orderIndex];
+
+        try {
+            
+            const total = orderToSave.items.reduce((sum, item) => sum + Number(item.price), 0);
+            
+            await pool.query('INSERT INTO order_history (order_id, total_price) VALUES ($1, $2)', [orderToSave.id, total]);
+
+            // Remove from temporary server list
+            activeOrders.splice(orderIndex, 1);
+            res.status(200).send("Order finalized and saved to DB");
+        } catch (err) {
+            console.error(err);
+            res.status(500).send("Error saving to database");
+        }
+    } else {
+        res.status(404).send("Order not found");
+    }
 });

@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>Create Order</title>
+        <link rel="stylesheet" href="/cashier/cashier.css">
+    </head>
+    <body>
+        <%- include('../partials/navigation-cashier') %>
+
+        <main class="content-wrapper-create-order">
+            <h1 class="page-title">Menu</h1>
+            
+            <section class="menu-grid">
+                <% items.forEach(item => { %>
+                    <div class="menu-item" onclick="addToCart('<%= item.item_name %>', <%= item.cost %>)">
+                        <h3><%= item.item_name %></h3>
+                        
+                        <p class="price">$<%= item.cost ? Number(item.cost).toFixed(2) : "0.00" %></p>
+                    </div>
+                <% }); %>
+            </section> </main>
+            <a href="/cart" class="floating-cart-button">View Cart (0 items)</a>
+        <script src="/cashier/script.js"></script>
+    </body>
+</html>
