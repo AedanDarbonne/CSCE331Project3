@@ -205,11 +205,11 @@ app.listen(port, () => {
 let activeOrders = []
 let orderCounter = 1; // Simple counter to assign order IDs
 
-app.get('/order-screen', (req, res) => {
+app.get('/cashier-order-screen', (req, res) => {
     // Make sure this table name matches 'menu' from your screenshot
     pool.query('SELECT * FROM menu ORDER BY item_id ASC;') 
         .then(query_res => {
-            res.render('Cashier/order-screen', { items: query_res.rows });
+            res.render('Cashier/cashier-order-screen', { items: query_res.rows });
         })
         .catch(err => {
             console.error(err);
@@ -224,7 +224,7 @@ app.get('/active-orders', (req, res) => {
 
 app.get('/cart', (req, res) => {
     // We don't need to pass database items here yet, 
-    // because the cart lives in the browser's LocalStorage!
+    // because the cart lives in the browser's Local Storage
     res.render('Cashier/cart'); 
 });
 
