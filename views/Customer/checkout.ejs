@@ -1,41 +1,56 @@
 <html>
     <head>
-        <title>Active Orders</title>
-        <link rel="stylesheet" href="/cashier/cashier.css">
+        <title>Checkout</title>
+        <link rel="stylesheet" href="/customer/customer.css">
     </head>
     <body>
-    <%- include('../partials/navigation-cashier') %>
+    <%- include('../partials/navigation-customer') %>
 
-    <main class="content-wrapper-active-orders">
-        <h1 class="page-title">Active Orders</h1>
-        
-        <div class="orders-container">
-            <% if (orders.length === 0) { %>
-                <p>No active orders at the moment.</p>
-            <% } else { %>
-                <% orders.forEach(order => { %>
-                    <div class="order-card" id="order-<%= order.id %>">
-                        <h3>Order #<%= order.id %></h3>
-                        <ul>
-                            <% order.items.forEach(item => { %>
-                                <li>- <%= item.name %>: $<%= Number(item.price).toFixed(2) %></li>
-                            <% }); %>
-                        </ul>
-                        <button class="complete-btn" onclick="completeOrder(<%= order.id %>)">Order Complete</button>
-                    </div>
-                <% }); %>
-            <% } %>
+    <main class="content-wrapper">
+        <h1 class="page-title">Checkout</h1>
+
+        <div class="checkout-form">
+            <label>Name on Card</label>
+            <input type="text" placeholder="John Doe">
+
+            <label>Card Number</label>
+            <input type="text" placeholder="1234 5678 9012 3456">
+
+            <div class="row-2">
+                <div>
+                    <label>Expiration</label>
+                    <input type="text" placeholder="MM/YY">
+                </div>
+                <div>
+                    <label>CVV</label>
+                    <input type="text" placeholder="123">
+                </div>
+            </div>
+
+            <label>Email</label>
+            <input type="email" placeholder="you@email.com">
+
+            <button onclick="placeOrder()">Place Order</button>
         </div>
     </main>
 
     <script>
-        async function completeOrder(orderId) {
-            // Send request to server to save this order to the DB and remove it from the list
-            const response = await fetch(`/api/complete-order/${orderId}`, { method: 'POST' });
-            
+        async function placeOrder() {
+            const cart = JSON.parse(localStorage.getItem('customer-cart') || '[]');
+            if (cart.length === 0) {
+                alert('Cart is empty');
+                return;
+            }
+
+            const response = await fetch('/api/customer-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart })
+            });
+
             if (response.ok) {
-                // Remove the card from the UI
-                document.getElementById(`order-${orderId}`).remove();
+                localStorage.setItem('customer-cart', '[]');
+                window.location.href = '/customer/order-confirmation';
             }
         }
     </script>

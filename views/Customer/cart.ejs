@@ -1,43 +1,68 @@
 <html>
     <head>
-        <title>Active Orders</title>
-        <link rel="stylesheet" href="/cashier/cashier.css">
+        <title>Cart</title>
+        <link rel="stylesheet" href="/customer/customer.css">
     </head>
     <body>
-    <%- include('../partials/navigation-cashier') %>
+    <%- include('../partials/navigation-customer') %>
 
-    <main class="content-wrapper-active-orders">
-        <h1 class="page-title">Active Orders</h1>
-        
-        <div class="orders-container">
-            <% if (orders.length === 0) { %>
-                <p>No active orders at the moment.</p>
-            <% } else { %>
-                <% orders.forEach(order => { %>
-                    <div class="order-card" id="order-<%= order.id %>">
-                        <h3>Order #<%= order.id %></h3>
-                        <ul>
-                            <% order.items.forEach(item => { %>
-                                <li>- <%= item.name %>: $<%= Number(item.price).toFixed(2) %></li>
-                            <% }); %>
-                        </ul>
-                        <button class="complete-btn" onclick="completeOrder(<%= order.id %>)">Order Complete</button>
-                    </div>
-                <% }); %>
-            <% } %>
+    <main class="content-wrapper">
+        <h1 class="page-title">Your Cart</h1>
+
+        <div class="cart-list" id="cart-list">
+            <p>Loading cart...</p>
+        </div>
+
+        <div class="cart-summary" id="cart-summary" style="display:none;">
+            <p>Subtotal: <span id="subtotal">$0.00</span></p>
+            <p>Tax (8.25%): <span id="tax">$0.00</span></p>
+            <p class="total">Total: <span id="total">$0.00</span></p>
+        </div>
+
+        <div class="cart-actions">
+            <a href="/customer">Back to Menu</a>
+            <a href="/customer/checkout">Checkout</a>
         </div>
     </main>
 
     <script>
-        async function completeOrder(orderId) {
-            // Send request to server to save this order to the DB and remove it from the list
-            const response = await fetch(`/api/complete-order/${orderId}`, { method: 'POST' });
-            
-            if (response.ok) {
-                // Remove the card from the UI
-                document.getElementById(`order-${orderId}`).remove();
+        function renderCart() {
+            const cart = JSON.parse(localStorage.getItem('customer-cart') || '[]');
+            const listEl = document.getElementById('cart-list');
+            const summaryEl = document.getElementById('cart-summary');
+
+            if (cart.length === 0) {
+                listEl.innerHTML = '<p>Your cart is empty.</p>';
+                summaryEl.style.display = 'none';
+                return;
             }
+
+            let html = '';
+            let subtotal = 0;
+            cart.forEach((item, i) => {
+                subtotal += item.price;
+                html += `<div class="cart-item">
+                    <span>${item.name} - $${item.price.toFixed(2)}</span>
+                    <button onclick="removeItem(${i})">Remove</button>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+
+            const tax = subtotal * 0.0825;
+            document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+            document.getElementById('tax').textContent = '$' + tax.toFixed(2);
+            document.getElementById('total').textContent = '$' + (subtotal + tax).toFixed(2);
+            summaryEl.style.display = 'block';
         }
+
+        function removeItem(index) {
+            let cart = JSON.parse(localStorage.getItem('customer-cart') || '[]');
+            cart.splice(index, 1);
+            localStorage.setItem('customer-cart', JSON.stringify(cart));
+            renderCart();
+        }
+
+        renderCart();
     </script>
     </body>
 </html>
