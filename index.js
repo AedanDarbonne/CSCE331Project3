@@ -195,7 +195,46 @@ app.post('/delete-menu-item', (req, res) => {
         });
 });
 
+//CUSTOMER VIEW
 
+app.use('/customer', express.static('views/Customer'));
+
+app.get('/customer', (req, res) => {
+    pool.query('SELECT * FROM menu ORDER BY item_id ASC;')
+        .then(query_res => {
+            res.render('Customer/customer-menu', { menu: query_res.rows });
+        })
+        .catch(err => {
+            console.error(err);
+            res.render('Customer/customer-menu', { menu: [] });
+        });
+});
+
+app.get('/customer/cart', (req, res) => {
+    res.render('Customer/cart');
+});
+
+app.get('/customer/checkout', (req, res) => {
+    res.render('Customer/checkout');
+});
+
+app.get('/customer/order-confirmation', (req, res) => {
+    res.render('Customer/order-confirmation');
+});
+
+app.post('/api/customer-checkout', (req, res) => {
+    const { items } = req.body;
+    if (!items || items.length === 0) {
+        return res.status(400).send("No items in cart");
+    }
+    const total = items.reduce((sum, item) => sum + Number(item.price), 0);
+    pool.query('INSERT INTO order_history (total_price) VALUES ($1)', [total])
+        .then(() => res.status(200).json({ success: true }))
+        .catch(err => {
+            console.error(err);
+            res.status(500).send("Error saving order");
+        });
+});
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
