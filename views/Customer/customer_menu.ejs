@@ -41,6 +41,12 @@
             <h2>Customize: <span id="modal-item-name"></span></h2>
 
             <div class="customization-group">
+                <h3>Size</h3>
+                <label><input type="radio" name="size" value="regular" checked> Regular</label>
+                <label><input type="radio" name="size" value="large"> Large (+$1.00)</label>
+            </div>
+
+            <div class="customization-group">
                 <h3>Milk</h3>
                 <label><input type="radio" name="milk" value="whole" checked> Whole</label>
                 <label><input type="radio" name="milk" value="2%"> 2%</label>
@@ -127,6 +133,7 @@
         var m = getModal();
         document.getElementById('modal-item-name').textContent = name;
 
+        m.querySelector('input[name="size"][value="regular"]').checked = true;
         m.querySelector('input[name="milk"][value="whole"]').checked = true;
         m.querySelector('input[name="sugar"][value="100%"]').checked = true;
         m.querySelector('input[name="temp"][value="cold"]').checked = true;
@@ -149,12 +156,14 @@
 
     function confirmAdd() {
         var m = getModal();
+        var size = m.querySelector('input[name="size"]:checked');
         var milk = m.querySelector('input[name="milk"]:checked');
         var sugar = m.querySelector('input[name="sugar"]:checked');
         var temp = m.querySelector('input[name="temp"]:checked');
         var ice = m.querySelector('input[name="ice"]:checked');
         var toppings = Array.from(m.querySelectorAll('input[name="topping"]:checked'));
         var toppings_amount = toppings.length;
+        var sizeUpcharge = (size && size.value === 'large') ? 1 : 0;
 
         if (!milk || !sugar || !temp || !ice) {
             console.error('Missing selections:', { milk, sugar, temp, ice });
@@ -162,6 +171,7 @@
         }
 
         var customizationsArray = [];
+        if (size && size.value === 'large') customizationsArray.push('Large');
         if (milk.value !== 'none') customizationsArray.push(milk.value.charAt(0).toUpperCase() + milk.value.slice(1) + ' Milk');
         customizationsArray.push(sugar.value + ' Sugar');
         customizationsArray.push(temp.value.charAt(0).toUpperCase() + temp.value.slice(1));
@@ -172,7 +182,7 @@
         for (var i = 0; i < itemQty; i++) {
             cart.push({
                 name: currentItem.name,
-                price: parseFloat((currentItem.price + toppings_amount).toFixed(2)),
+                price: parseFloat((currentItem.price + toppings_amount + sizeUpcharge).toFixed(2)),
                 customizations: customizationsArray.join(', ')
             });
         }
